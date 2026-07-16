@@ -8,7 +8,7 @@ CREATE TABLE public.organization_invitations (
   org_id UUID NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   role public.app_role NOT NULL,
-  token TEXT NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(24), 'hex'),
+  token TEXT NOT NULL UNIQUE,
   invited_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   expires_at TIMESTAMPTZ NOT NULL DEFAULT (now() + interval '14 days'),
   accepted_at TIMESTAMPTZ,

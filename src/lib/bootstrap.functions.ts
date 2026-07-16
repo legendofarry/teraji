@@ -1,5 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 /**
  * Platform Admin bootstrap.
@@ -81,21 +84,63 @@ export const claimPlatformAdmin = createServerFn({ method: "POST" })
 export const getMySession = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const [profileRes, rolesRes, membersRes] = await Promise.all([
+    const [profileRes, rolesRes, membersRes, authRes] = await Promise.all([
       context.supabase.from("profiles").select("*").eq("user_id", context.userId).maybeSingle(),
       context.supabase.from("user_roles").select("role, org_id").eq("user_id", context.userId),
       context.supabase
         .from("organization_members")
         .select("org_id, status, organizations(id,name,slug,status)")
         .eq("user_id", context.userId),
+      context.supabase.auth.getUser(),
     ]);
+
+    const activeMemberships = (membersRes.data ?? []).filter(
+      (membership) => membership.status === "active",
+    );
+    const activeOrgIds = new Set(activeMemberships.map((membership) => membership.org_id));
+    const activeRoles = (rolesRes.data ?? []).filter(
+      (role) =>
+        role.role === "platform_admin" || (role.org_id ? activeOrgIds.has(role.org_id) : false),
+    );
+
+    const rolePriority: AppRole[] = [
+      "platform_admin",
+      "org_admin",
+      "clinical_supervisor",
+      "counselor",
+      "org_staff",
+      "client",
+    ];
+    const highestRole =
+      activeRoles
+        .slice()
+        .sort(
+          (a, b) =>
+            rolePriority.indexOf(a.role as AppRole) - rolePriority.indexOf(b.role as AppRole),
+        )[0]?.role ?? null;
+
+    const primaryMembership =
+      highestRole && highestRole !== "platform_admin"
+        ? (activeMemberships.find((membership) =>
+            activeRoles.some(
+              (role) => role.org_id === membership.org_id && role.role === highestRole,
+            ),
+          ) ??
+          activeMemberships[0] ??
+          null)
+        : null;
 
     return {
       userId: context.userId,
       email: (context.claims.email as string | undefined) ?? null,
+      emailVerified: !!authRes.data.user?.email_confirmed_at,
       profile: profileRes.data,
       roles: rolesRes.data ?? [],
       memberships: membersRes.data ?? [],
-      isPlatformAdmin: (rolesRes.data ?? []).some((r) => r.role === "platform_admin"),
+      activeMemberships,
+      activeRoles,
+      highestRole,
+      primaryMembership,
+      isPlatformAdmin: activeRoles.some((r) => r.role === "platform_admin"),
     };
   });

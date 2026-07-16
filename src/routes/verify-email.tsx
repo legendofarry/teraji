@@ -13,10 +13,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/verify-email")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
-    meta: [
-      { title: "Verify your email — Teraji" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Verify your email - Teraji" }, { name: "robots", content: "noindex" }],
   }),
   component: VerifyEmailPage,
 });
@@ -27,8 +24,6 @@ function VerifyEmailPage() {
   const [resending, setResending] = useState(false);
   const [verified, setVerified] = useState(false);
 
-  // Poll + listen for verification: fires as soon as the confirmation link is
-  // clicked in another tab (Supabase syncs localStorage cross-tab).
   useEffect(() => {
     let cancelled = false;
 
@@ -56,7 +51,7 @@ function VerifyEmailPage() {
 
   async function resend() {
     if (!email) {
-      toast.error("No email on file — please sign up again.");
+      toast.error("No email on file - please sign up again.");
       return;
     }
     setResending(true);
@@ -67,7 +62,7 @@ function VerifyEmailPage() {
         options: { emailRedirectTo: `${window.location.origin}/dashboard` },
       });
       if (error) throw error;
-      toast.success("Verification email sent again — check your inbox.");
+      toast.success("Verification email sent again - check your inbox.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to resend");
     } finally {
@@ -77,7 +72,6 @@ function VerifyEmailPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 px-6 py-10">
-      {/* Ambient animated blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
           className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/20 blur-3xl"
@@ -95,7 +89,6 @@ function VerifyEmailPage() {
 
       <div className="relative z-10 w-full max-w-md">
         <div className="rounded-2xl border border-border/60 bg-card/80 p-8 shadow-2xl backdrop-blur-xl">
-          {/* Icon with pulse rings */}
           <div className="relative mx-auto mb-6 grid h-24 w-24 place-items-center">
             <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
             <span
@@ -106,7 +99,10 @@ function VerifyEmailPage() {
               {verified ? (
                 <CheckCircle2 className="h-8 w-8 animate-in zoom-in-50 duration-500" />
               ) : (
-                <Mail className="h-8 w-8" style={{ animation: "teraji-tilt 3s ease-in-out infinite" }} />
+                <Mail
+                  className="h-8 w-8"
+                  style={{ animation: "teraji-tilt 3s ease-in-out infinite" }}
+                />
               )}
             </div>
           </div>
@@ -116,7 +112,7 @@ function VerifyEmailPage() {
           </h1>
           <p className="mt-2 text-center text-sm text-muted-foreground">
             {verified ? (
-              <>Taking you to your workspace…</>
+              <>Taking you to your workspace...</>
             ) : (
               <>
                 We sent a verification link to{" "}
@@ -127,9 +123,12 @@ function VerifyEmailPage() {
             )}
           </p>
 
-          {/* Progress dots */}
           {!verified && (
-            <div className="mt-6 flex items-center justify-center gap-1.5">
+            <div
+              className="mt-6 flex items-center justify-center gap-1.5"
+              role="status"
+              aria-live="polite"
+            >
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}
@@ -139,7 +138,9 @@ function VerifyEmailPage() {
                   }}
                 />
               ))}
-              <span className="ml-3 text-xs text-muted-foreground">Waiting for verification…</span>
+              <span className="ml-3 text-xs text-muted-foreground">
+                Waiting for verification...
+              </span>
             </div>
           )}
 
@@ -152,14 +153,14 @@ function VerifyEmailPage() {
                 disabled={resending || !email}
               >
                 <RefreshCw className={resending ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"} />
-                {resending ? "Sending…" : "Resend verification email"}
+                {resending ? "Sending..." : "Resend verification email"}
               </Button>
               <Button
                 variant="ghost"
                 className="w-full"
                 onClick={() => navigate({ to: "/auth", search: { mode: "signin" } })}
               >
-                I've verified — sign in
+                I&apos;ve verified - sign in
               </Button>
             </div>
           )}
@@ -177,12 +178,11 @@ function VerifyEmailPage() {
         </div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Didn't get it? Check your spam folder, or make sure you signed up with{" "}
+          Did not get it? Check your spam folder, or make sure you signed up with{" "}
           <span className="font-medium">{email ?? "the right address"}</span>.
         </p>
       </div>
 
-      {/* Scoped keyframes */}
       <style>{`
         @keyframes teraji-float {
           0%, 100% { transform: translate(0, 0) scale(1); }

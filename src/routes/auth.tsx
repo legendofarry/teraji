@@ -16,7 +16,7 @@ export const Route = createFileRoute("/auth")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
-      { title: "Sign in — Teraji" },
+      { title: "Sign in - Teraji" },
       { name: "description", content: "Sign in to your Teraji counseling workspace." },
       { name: "robots", content: "noindex" },
     ],
@@ -32,7 +32,6 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
 
-  // Redirect if already signed in
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) navigate({ to: (redirect as "/dashboard") ?? "/dashboard", replace: true });
@@ -53,14 +52,14 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Verification email sent — check your inbox.");
+        toast.success("Verification email sent - check your inbox.");
         navigate({ to: "/verify-email", search: { email }, replace: true });
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
-        toast.success("Password reset email sent — check your inbox.");
+        toast.success("Password reset email sent - check your inbox.");
         navigate({ to: "/auth", search: { mode: "signin" }, replace: true });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -82,32 +81,38 @@ function AuthPage() {
 
   return (
     <div className="grid min-h-screen bg-background lg:grid-cols-2">
-      <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary/90 to-primary p-12 text-primary-foreground">
+      <div className="hidden flex-col justify-between bg-gradient-to-br from-primary/90 to-primary p-12 text-primary-foreground lg:flex">
         <Link to="/" className="flex items-center gap-2 font-display text-lg font-semibold">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary-foreground/15 font-bold">T</div>
+          <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary-foreground/15 font-bold">
+            T
+          </div>
           Teraji
         </Link>
         <div>
           <p className="font-display text-3xl font-semibold leading-tight">
-            "A private, safe, and delightful digital workspace for every counseling team."
+            A private, safe, and delightful digital workspace for every counseling team.
           </p>
           <p className="mt-4 text-sm opacity-80">
-            Multi-tenant · Kenya DPA aligned · Built with clinical rigor.
+            Multi-tenant - privacy-first - built with clinical rigor.
           </p>
         </div>
-        <span className="text-xs opacity-70">© {new Date().getFullYear()} Teraji</span>
+        <span className="text-xs opacity-70">Copyright {new Date().getFullYear()} Teraji</span>
       </div>
 
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
-          <div className="lg:hidden mb-8">
+          <div className="mb-8 lg:hidden">
             <Link to="/" className="flex items-center gap-2 font-display text-lg font-semibold">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground font-bold">T</div>
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground font-bold">
+                T
+              </div>
               Teraji
             </Link>
           </div>
 
-          <h1 className="font-display text-2xl font-semibold tracking-tight">{titles[mode as "signin" | "signup" | "forgot"]}</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">
+            {titles[mode as "signin" | "signup" | "forgot"]}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signup"
               ? "Set up your organization workspace in minutes."
@@ -120,12 +125,24 @@ function AuthPage() {
             {mode === "signup" && (
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full name</Label>
-                <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
               </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             {mode !== "forgot" && (
               <div className="space-y-2">
@@ -142,7 +159,13 @@ function AuthPage() {
               </div>
             )}
             <Button type="submit" className="w-full" disabled={busy}>
-              {busy ? "Please wait…" : mode === "signup" ? "Create account" : mode === "forgot" ? "Send reset link" : "Sign in"}
+              {busy
+                ? "Please wait..."
+                : mode === "signup"
+                  ? "Create account"
+                  : mode === "forgot"
+                    ? "Send reset link"
+                    : "Sign in"}
             </Button>
           </form>
 
@@ -151,12 +174,20 @@ function AuthPage() {
               <>
                 <div>
                   New to Teraji?{" "}
-                  <Link to="/auth" search={{ mode: "signup" }} className="text-primary hover:underline">
+                  <Link
+                    to="/auth"
+                    search={{ mode: "signup" }}
+                    className="text-primary hover:underline"
+                  >
                     Create an account
                   </Link>
                 </div>
                 <div>
-                  <Link to="/auth" search={{ mode: "forgot" }} className="text-primary hover:underline">
+                  <Link
+                    to="/auth"
+                    search={{ mode: "forgot" }}
+                    className="text-primary hover:underline"
+                  >
                     Forgot your password?
                   </Link>
                 </div>
@@ -165,14 +196,22 @@ function AuthPage() {
             {mode === "signup" && (
               <div>
                 Already have an account?{" "}
-                <Link to="/auth" search={{ mode: "signin" }} className="text-primary hover:underline">
+                <Link
+                  to="/auth"
+                  search={{ mode: "signin" }}
+                  className="text-primary hover:underline"
+                >
                   Sign in
                 </Link>
               </div>
             )}
             {mode === "forgot" && (
               <div>
-                <Link to="/auth" search={{ mode: "signin" }} className="text-primary hover:underline">
+                <Link
+                  to="/auth"
+                  search={{ mode: "signin" }}
+                  className="text-primary hover:underline"
+                >
                   Back to sign in
                 </Link>
               </div>

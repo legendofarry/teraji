@@ -1,13 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 type MemberStatus = Database["public"]["Enums"]["member_status"];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function audit(
-  supa: any,
+  supa: SupabaseClient<Database>,
   actorId: string,
   orgId: string | null,
   action: string,
@@ -29,7 +29,7 @@ async function audit(
 
 export const createOrganization = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { name: string; slug: string }) => {
+  .validator((d: { name: string; slug: string }) => {
     if (!d?.name?.trim() || !d?.slug?.trim()) throw new Error("name_and_slug_required");
     if (!/^[a-z0-9][a-z0-9-]{1,50}$/.test(d.slug)) throw new Error("invalid_slug");
     return d;
@@ -48,7 +48,9 @@ export const listOrganizations = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("organizations")
-      .select("id,name,slug,status,region,timezone,locale,branding,onboarding_config,retention_days,created_at")
+      .select(
+        "id,name,slug,status,region,timezone,locale,branding,onboarding_config,retention_days,created_at",
+      )
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data ?? [];
@@ -56,7 +58,7 @@ export const listOrganizations = createServerFn({ method: "GET" })
 
 export const getOrganization = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string }) => d)
+  .validator((d: { orgId: string }) => d)
   .handler(async ({ data, context }) => {
     const { data: org, error } = await context.supabase
       .from("organizations")
@@ -70,7 +72,7 @@ export const getOrganization = createServerFn({ method: "GET" })
 
 export const updateOrganizationSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (d: {
       orgId: string;
       name?: string;
@@ -99,7 +101,7 @@ export const updateOrganizationSettings = createServerFn({ method: "POST" })
 
 export const listMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string }) => d)
+  .validator((d: { orgId: string }) => d)
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("organization_members")
@@ -124,7 +126,7 @@ export const listMembers = createServerFn({ method: "GET" })
 
 export const setMemberStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string; userId: string; status: MemberStatus }) => d)
+  .validator((d: { orgId: string; userId: string; status: MemberStatus }) => d)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.rpc("set_member_status", {
       _user_id: data.userId,
@@ -137,7 +139,7 @@ export const setMemberStatus = createServerFn({ method: "POST" })
 
 export const assignRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string; userId: string; role: AppRole }) => d)
+  .validator((d: { orgId: string; userId: string; role: AppRole }) => d)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.rpc("assign_org_role", {
       _user_id: data.userId,
@@ -150,7 +152,7 @@ export const assignRole = createServerFn({ method: "POST" })
 
 export const revokeRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string; userId: string; role: AppRole }) => d)
+  .validator((d: { orgId: string; userId: string; role: AppRole }) => d)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.rpc("revoke_org_role", {
       _user_id: data.userId,
@@ -165,7 +167,7 @@ export const revokeRole = createServerFn({ method: "POST" })
 
 export const listInvitations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string }) => d)
+  .validator((d: { orgId: string }) => d)
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("organization_invitations")
@@ -178,12 +180,15 @@ export const listInvitations = createServerFn({ method: "GET" })
 
 export const createInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string; email: string; role: AppRole }) => {
+  .validator((d: { orgId: string; email: string; role: AppRole }) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) throw new Error("invalid_email");
     if (d.role === "platform_admin") throw new Error("cannot_invite_platform_admin");
     return d;
   })
   .handler(async ({ data, context }) => {
+    const { randomBytes } = await import("node:crypto");
+    const token = randomBytes(24).toString("hex");
+
     // RLS guards this: only org_admin/platform_admin can insert
     const { data: inv, error } = await context.supabase
       .from("organization_invitations")
@@ -191,21 +196,30 @@ export const createInvitation = createServerFn({ method: "POST" })
         org_id: data.orgId,
         email: data.email.toLowerCase(),
         role: data.role,
+        token,
         invited_by: context.userId,
       })
       .select("id,token,email,role,expires_at")
       .single();
     if (error) throw new Error(error.message);
-    await audit(context.supabase, context.userId, data.orgId, "invitation.created", "organization_invitations", inv.id, {
-      email: inv.email,
-      role: inv.role,
-    });
+    await audit(
+      context.supabase,
+      context.userId,
+      data.orgId,
+      "invitation.created",
+      "organization_invitations",
+      inv.id,
+      {
+        email: inv.email,
+        role: inv.role,
+      },
+    );
     return inv;
   });
 
 export const revokeInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string; invitationId: string }) => d)
+  .validator((d: { orgId: string; invitationId: string }) => d)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("organization_invitations")
@@ -213,7 +227,14 @@ export const revokeInvitation = createServerFn({ method: "POST" })
       .eq("id", data.invitationId)
       .eq("org_id", data.orgId);
     if (error) throw new Error(error.message);
-    await audit(context.supabase, context.userId, data.orgId, "invitation.revoked", "organization_invitations", data.invitationId);
+    await audit(
+      context.supabase,
+      context.userId,
+      data.orgId,
+      "invitation.revoked",
+      "organization_invitations",
+      data.invitationId,
+    );
     return { ok: true };
   });
 
@@ -229,9 +250,11 @@ export type PeekedInvitation = {
 
 export const peekInvitation = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { token: string }) => d)
+  .validator((d: { token: string }) => d)
   .handler(async ({ data, context }): Promise<PeekedInvitation> => {
-    const { data: res, error } = await context.supabase.rpc("peek_org_invitation", { _token: data.token });
+    const { data: res, error } = await context.supabase.rpc("peek_org_invitation", {
+      _token: data.token,
+    });
     if (error) throw new Error(error.message);
     const r = (res ?? {}) as Record<string, unknown>;
     const org = r.org as { id: string; name: string; slug: string; branding: unknown } | undefined;
@@ -242,15 +265,24 @@ export const peekInvitation = createServerFn({ method: "GET" })
       expires_at: r.expires_at as string | undefined,
       accepted: r.accepted as boolean | undefined,
       revoked: r.revoked as boolean | undefined,
-      org: org ? { id: org.id, name: org.name, slug: org.slug, branding: JSON.stringify(org.branding ?? {}) } : undefined,
+      org: org
+        ? {
+            id: org.id,
+            name: org.name,
+            slug: org.slug,
+            branding: JSON.stringify(org.branding ?? {}),
+          }
+        : undefined,
     };
   });
 
 export const acceptInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { token: string }) => d)
+  .validator((d: { token: string }) => d)
   .handler(async ({ data, context }) => {
-    const { data: res, error } = await context.supabase.rpc("accept_org_invitation", { _token: data.token });
+    const { data: res, error } = await context.supabase.rpc("accept_org_invitation", {
+      _token: data.token,
+    });
     if (error) throw new Error(error.message);
     return res as { ok: boolean; org_id: string; role: AppRole };
   });
@@ -259,12 +291,25 @@ export const acceptInvitation = createServerFn({ method: "POST" })
 
 export const listAuditLog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { orgId: string; limit?: number }) => d)
+  .validator((d: { orgId: string; limit?: number }) => d)
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("audit_log")
       .select("id,at,actor_id,action,entity_type,entity_id,diff")
       .eq("org_id", data.orgId)
+      .order("at", { ascending: false })
+      .limit(data.limit ?? 100);
+    if (error) throw error;
+    return rows ?? [];
+  });
+
+export const listPlatformAuditLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: { limit?: number } = {}) => d)
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("audit_log")
+      .select("id,at,org_id,actor_id,action,entity_type,entity_id,diff")
       .order("at", { ascending: false })
       .limit(data.limit ?? 100);
     if (error) throw error;

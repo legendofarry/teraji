@@ -10,7 +10,9 @@ import { peekInvitation, acceptInvitation } from "@/lib/organizations.functions"
 import { Building2 } from "lucide-react";
 
 export const Route = createFileRoute("/invite/$token")({
-  head: () => ({ meta: [{ title: "Accept invitation — Teraji" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Accept invitation - Teraji" }, { name: "robots", content: "noindex" }],
+  }),
   component: InvitePage,
   errorComponent: ({ error }) => (
     <div className="p-8 text-sm text-destructive">Failed to load: {error.message}</div>
@@ -44,20 +46,18 @@ function InvitePage() {
   const acceptMut = useMutation({
     mutationFn: () => accept({ data: { token } }),
     onSuccess: (res) => {
-      toast.success("You're in — welcome to the team!");
+      toast.success("You are in - welcome to the team!");
       router.invalidate();
-      // Org admins land on settings so they can configure the org.
-      // Everyone else goes to the dashboard to get started.
       if (res.role === "org_admin") {
         navigate({ to: "/org/$orgId/settings", params: { orgId: res.org_id }, replace: true });
       } else {
         navigate({ to: "/dashboard", replace: true });
       }
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 
-  if (authed === null) return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
+  if (authed === null) return <div className="p-8 text-sm text-muted-foreground">Loading...</div>;
 
   if (!authed) {
     return (
@@ -81,12 +81,14 @@ function InvitePage() {
     );
   }
 
-  if (q.isLoading) return <div className="p-8 text-sm text-muted-foreground">Checking invitation…</div>;
+  if (q.isLoading)
+    return <div className="p-8 text-sm text-muted-foreground">Checking invitation...</div>;
   const inv = q.data;
   if (!inv?.found) return <div className="p-8 text-sm">Invitation not found.</div>;
 
   const emailMismatch = inv.email && email && inv.email.toLowerCase() !== email.toLowerCase();
-  const stale = inv.revoked || inv.accepted || (inv.expires_at && new Date(inv.expires_at) < new Date());
+  const stale =
+    inv.revoked || inv.accepted || (inv.expires_at && new Date(inv.expires_at) < new Date());
 
   return (
     <div className="mx-auto max-w-md p-8">
@@ -97,26 +99,38 @@ function InvitePage() {
             <CardTitle>{inv.org?.name ?? "Organization"}</CardTitle>
           </div>
           <CardDescription>
-            You've been invited as <span className="font-medium">{inv.role}</span> for <span className="font-medium">{inv.email}</span>.
+            You&apos;ve been invited as <span className="font-medium">{inv.role}</span> for{" "}
+            <span className="font-medium">{inv.email}</span>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {emailMismatch && (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              You're signed in as {email}. Sign out and sign in as {inv.email} to accept.
+              You&apos;re signed in as {email}. Sign out and sign in as {inv.email} to accept.
             </p>
           )}
-          {inv.accepted && <p className="text-sm text-muted-foreground">This invitation has already been accepted.</p>}
-          {inv.revoked && <p className="text-sm text-destructive">This invitation has been revoked.</p>}
-          {!inv.accepted && !inv.revoked && inv.expires_at && new Date(inv.expires_at) < new Date() && (
-            <p className="text-sm text-destructive">This invitation expired on {new Date(inv.expires_at).toLocaleDateString()}.</p>
+          {inv.accepted && (
+            <p className="text-sm text-muted-foreground">
+              This invitation has already been accepted.
+            </p>
           )}
+          {inv.revoked && (
+            <p className="text-sm text-destructive">This invitation has been revoked.</p>
+          )}
+          {!inv.accepted &&
+            !inv.revoked &&
+            inv.expires_at &&
+            new Date(inv.expires_at) < new Date() && (
+              <p className="text-sm text-destructive">
+                This invitation expired on {new Date(inv.expires_at).toLocaleDateString()}.
+              </p>
+            )}
           <Button
             className="w-full"
             disabled={!!emailMismatch || !!stale || acceptMut.isPending}
             onClick={() => acceptMut.mutate()}
           >
-            {acceptMut.isPending ? "Accepting…" : "Accept invitation"}
+            {acceptMut.isPending ? "Accepting..." : "Accept invitation"}
           </Button>
         </CardContent>
       </Card>

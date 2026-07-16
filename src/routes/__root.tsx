@@ -10,13 +10,13 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportTerajiError } from "../lib/teraji-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 
 const APP_NAME = "Teraji";
 const APP_DESCRIPTION =
-  "Teraji is a secure, private counseling platform for organizations — scheduling, notes, assessments, and crisis workflows built for clinical rigor and client dignity.";
+  "Teraji is a secure, private counseling platform for organizations - scheduling, notes, assessments, and crisis workflows built for clinical rigor and client dignity.";
 
 function NotFoundComponent() {
   return (
@@ -25,7 +25,7 @@ function NotFoundComponent() {
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
         <div className="mt-6">
           <Link
@@ -44,14 +44,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportTerajiError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          This page did not load
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
@@ -83,16 +83,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: `${APP_NAME} — Secure counseling platform for organizations` },
+      { title: `${APP_NAME} - Secure counseling platform for organizations` },
       { name: "description", content: APP_DESCRIPTION },
       { name: "author", content: APP_NAME },
       { name: "theme-color", content: "#0e6b8a" },
-      { property: "og:title", content: `${APP_NAME} — Secure counseling platform` },
+      { property: "og:title", content: `${APP_NAME} - Secure counseling platform` },
       { property: "og:description", content: APP_DESCRIPTION },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: APP_NAME },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: `${APP_NAME} — Secure counseling platform` },
+      { name: "twitter:title", content: `${APP_NAME} - Secure counseling platform` },
       { name: "twitter:description", content: APP_DESCRIPTION },
     ],
     links: [
@@ -132,12 +132,7 @@ function RootComponent() {
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (
-        event !== "SIGNED_IN" &&
-        event !== "SIGNED_OUT" &&
-        event !== "USER_UPDATED"
-      )
-        return;
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });

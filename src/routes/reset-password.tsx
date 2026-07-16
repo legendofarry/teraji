@@ -8,10 +8,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
-    meta: [
-      { title: "Reset password — Teraji" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Reset password - Teraji" }, { name: "robots", content: "noindex" }],
   }),
   component: ResetPasswordPage,
 });
@@ -27,8 +24,7 @@ function ResetPasswordPage() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast.success("Password updated — please sign in with your new password.");
-      // Sign the recovery session out so the user has to authenticate cleanly.
+      toast.success("Password updated - please sign in with your new password.");
       await supabase.auth.signOut();
       navigate({ to: "/auth", search: { mode: "signin" }, replace: true });
     } catch (err) {
@@ -59,7 +55,7 @@ function ResetPasswordPage() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={busy}>
-            {busy ? "Please wait…" : "Update password"}
+            {busy ? "Please wait..." : "Update password"}
           </Button>
         </form>
       </div>

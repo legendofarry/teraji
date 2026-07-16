@@ -23,6 +23,7 @@
 ## 3. Product Scope
 
 ### 3.1 In scope (MVP / v1)
+
 - Multi-tenant org onboarding (invite-only default; other methods architected)
 - Role-based access (Platform Admin, Org Admin, Counselor, Client, Org Staff)
 - Client roster, intake, consent capture, **emergency contact**, **case status**
@@ -39,6 +40,7 @@
 - Client & counselor self-service profile management
 
 ### 3.2 Architected in v1, delivered later
+
 - 1:1 voice & video sessions
 - Organization live meeting rooms
 - Group counseling sessions
@@ -52,6 +54,7 @@
 - Native mobile apps
 
 ### 3.3 Explicitly out of scope (v1 and v2)
+
 - Prescribing / e-pharmacy
 - Insurance claims processing
 - Public directory of counselors outside an org
@@ -68,14 +71,14 @@
 
 ## 5. User Personas
 
-| Persona | Context | Primary goals | Pain points solved |
-|---|---|---|---|
-| **Amina — Dean of Students** | Public university, 25k students | Compliant, auditable counseling service; visibility into demand | Paper files, no data on wait times, privacy risk |
-| **David — Head Counselor** | 6-counselor team | Efficient triage, safe notes, workload balance | Excel scheduling, unsecured docs |
-| **Grace — Counselor** | Sees 6–8 clients/day | Fast notes, safe messaging, follow-up tracking | Losing continuity between sessions |
-| **Brian — Student/Client** | Undergraduate, smartphone-first | Book privately, message counselor, complete forms | Stigma of walking into office, no visibility of appointment |
-| **Faith — Org Admin (non-clinical)** | Registrar's office | Provision counselors, run reports, manage roster | Manual user setup |
-| **Peter — Platform Admin** | Lovable-side operator | Onboard orgs, monitor uptime, handle billing | N/A — new role |
+| Persona                              | Context                         | Primary goals                                                   | Pain points solved                                          |
+| ------------------------------------ | ------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Amina — Dean of Students**         | Public university, 25k students | Compliant, auditable counseling service; visibility into demand | Paper files, no data on wait times, privacy risk            |
+| **David — Head Counselor**           | 6-counselor team                | Efficient triage, safe notes, workload balance                  | Excel scheduling, unsecured docs                            |
+| **Grace — Counselor**                | Sees 6–8 clients/day            | Fast notes, safe messaging, follow-up tracking                  | Losing continuity between sessions                          |
+| **Brian — Student/Client**           | Undergraduate, smartphone-first | Book privately, message counselor, complete forms               | Stigma of walking into office, no visibility of appointment |
+| **Faith — Org Admin (non-clinical)** | Registrar's office              | Provision counselors, run reports, manage roster                | Manual user setup                                           |
+| **Peter — Platform Admin**           | Platform operator               | Onboard orgs, monitor uptime, handle billing                    | N/A — new role                                              |
 
 ---
 
@@ -83,13 +86,13 @@
 
 **[C]** Five system roles. Roles are stored in a separate `user_roles` table (never on profiles) and checked via a `has_role` SECURITY DEFINER function to avoid RLS recursion.
 
-| Role | Scope | Key responsibilities |
-|---|---|---|
-| **Platform Administrator** | Global | Onboard/suspend orgs, feature flags, platform telemetry, billing config. **Zero access to tenant counseling data.** |
-| **Organization Administrator** | One org | Configure org, manage staff/counselors, onboarding methods, retention overrides, view org-level analytics, manage roster |
-| **Counselor** | One org, own caseload + shared queue | Own availability, conduct sessions, write private notes & shared summary, manage assessments, initiate escalations, create/close tasks |
-| **Client** | One org, own record only | Book/cancel, complete intake & assessments, message assigned counselor, view shared summary, view own tasks |
-| **Organization Staff** | One org, restricted | Front-desk / reception: view schedule, check-in clients, no access to notes/messages |
+| Role                           | Scope                                | Key responsibilities                                                                                                                   |
+| ------------------------------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Platform Administrator**     | Global                               | Onboard/suspend orgs, feature flags, platform telemetry, billing config. **Zero access to tenant counseling data.**                    |
+| **Organization Administrator** | One org                              | Configure org, manage staff/counselors, onboarding methods, retention overrides, view org-level analytics, manage roster               |
+| **Counselor**                  | One org, own caseload + shared queue | Own availability, conduct sessions, write private notes & shared summary, manage assessments, initiate escalations, create/close tasks |
+| **Client**                     | One org, own record only             | Book/cancel, complete intake & assessments, message assigned counselor, view shared summary, view own tasks                            |
+| **Organization Staff**         | One org, restricted                  | Front-desk / reception: view schedule, check-in clients, no access to notes/messages                                                   |
 
 **[R]** Add a permission-based sub-role: **Clinical Supervisor** (counselor with `permissions:supervise`) who can review other counselors' notes for supervision.
 
@@ -101,26 +104,26 @@
 
 Legend: ✅ full · 🟡 conditional · ❌ none
 
-| Capability | Platform Admin | Org Admin | Counselor | Org Staff | Client | Supervisor |
-|---|---|---|---|---|---|---|
-| Create org | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Configure org settings | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Manage users in own org | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| View own org roster | ❌ | ✅ | 🟡 assigned | 🟡 limited | ❌ | ✅ |
-| Book / edit appointment | ❌ | ✅ | ✅ | 🟡 create only | 🟡 own only | ✅ |
-| Read counselor's **private** notes | ❌ | ❌ | 🟡 own only | ❌ | ❌ | 🟡 supervisees only |
-| Read **shared summary** | ❌ | ❌ | 🟡 assigned | ❌ | 🟡 own | 🟡 supervisees |
-| Send message to client | ❌ | ❌ | 🟡 assigned | ❌ | 🟡 to counselor | ❌ |
-| Complete assessment | ❌ | ❌ | ✅ | ❌ | 🟡 assigned | ✅ |
-| Trigger escalation | ❌ | ❌ | ✅ | ❌ | 🟡 self-alert | ✅ |
-| Manage client **case status** | ❌ | 🟡 override | ✅ assigned | ❌ | ❌ | ✅ |
-| View/edit **emergency contact** | ❌ | 🟡 org admin | 🟡 assigned | ❌ | ✅ own | 🟡 supervisees |
-| Create/assign **task** | ❌ | 🟡 own team | ✅ | ❌ | ❌ | ✅ |
-| View own tasks (as client) | ❌ | ❌ | ❌ | ❌ | 🟡 client-visible only | ❌ |
-| View org analytics | ❌ | ✅ | 🟡 own | ❌ | ❌ | ✅ |
-| View platform analytics | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Export client's own data (DSAR) | ❌ | 🟡 with audit | ❌ | ❌ | ✅ | ❌ |
-| Impersonate user | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Capability                         | Platform Admin | Org Admin     | Counselor   | Org Staff      | Client                 | Supervisor          |
+| ---------------------------------- | -------------- | ------------- | ----------- | -------------- | ---------------------- | ------------------- |
+| Create org                         | ✅             | ❌            | ❌          | ❌             | ❌                     | ❌                  |
+| Configure org settings             | ❌             | ✅            | ❌          | ❌             | ❌                     | ❌                  |
+| Manage users in own org            | ❌             | ✅            | ❌          | ❌             | ❌                     | ❌                  |
+| View own org roster                | ❌             | ✅            | 🟡 assigned | 🟡 limited     | ❌                     | ✅                  |
+| Book / edit appointment            | ❌             | ✅            | ✅          | 🟡 create only | 🟡 own only            | ✅                  |
+| Read counselor's **private** notes | ❌             | ❌            | 🟡 own only | ❌             | ❌                     | 🟡 supervisees only |
+| Read **shared summary**            | ❌             | ❌            | 🟡 assigned | ❌             | 🟡 own                 | 🟡 supervisees      |
+| Send message to client             | ❌             | ❌            | 🟡 assigned | ❌             | 🟡 to counselor        | ❌                  |
+| Complete assessment                | ❌             | ❌            | ✅          | ❌             | 🟡 assigned            | ✅                  |
+| Trigger escalation                 | ❌             | ❌            | ✅          | ❌             | 🟡 self-alert          | ✅                  |
+| Manage client **case status**      | ❌             | 🟡 override   | ✅ assigned | ❌             | ❌                     | ✅                  |
+| View/edit **emergency contact**    | ❌             | 🟡 org admin  | 🟡 assigned | ❌             | ✅ own                 | 🟡 supervisees      |
+| Create/assign **task**             | ❌             | 🟡 own team   | ✅          | ❌             | ❌                     | ✅                  |
+| View own tasks (as client)         | ❌             | ❌            | ❌          | ❌             | 🟡 client-visible only | ❌                  |
+| View org analytics                 | ❌             | ✅            | 🟡 own      | ❌             | ❌                     | ✅                  |
+| View platform analytics            | ✅             | ❌            | ❌          | ❌             | ❌                     | ❌                  |
+| Export client's own data (DSAR)    | ❌             | 🟡 with audit | ❌          | ❌             | ✅                     | ❌                  |
+| Impersonate user                   | ❌             | ❌            | ❌          | ❌             | ❌                     | ❌                  |
 
 **[C]** Platform Admin has **zero-access** to tenant counseling data (enforced by RLS). Break-glass access is out of scope for v1.
 
@@ -156,11 +159,12 @@ Legend: ✅ full · 🟡 conditional · ❌ none
 **FR-15 Media (later)**: `session_media` abstraction with adapter pattern; Daily.co adapter first.
 **FR-16 Emergency Contact (NEW)**: Each client MAY have zero or more emergency contacts with fields `full_name`, `relationship`, `phone_number`, `email` (optional), `is_primary`, `notes`. Editable by the client and by the assigned counselor. Surfaced automatically in the escalation view and safety plan. Change history retained (audit).
 **FR-17 Case Status (NEW)**: Each client has a single `case_status` enum: `active | waiting | closed | referred | archived`. Transitions are logged with actor, timestamp, and optional reason. Business rules:
+
 - New clients default to `waiting` until first appointment is completed, then `active`.
 - `referred` requires a referral record (org name or internal counselor, reason).
 - `closed` and `archived` may auto-resolve or reassign open tasks per org policy.
 - Escalations cannot be opened on `archived` clients (must be reactivated first).
-**FR-18 Tasks & Follow-ups (NEW)**: A task represents an actionable item created by a counselor (or auto-generated from a workflow such as escalation or assessment threshold).
+  **FR-18 Tasks & Follow-ups (NEW)**: A task represents an actionable item created by a counselor (or auto-generated from a workflow such as escalation or assessment threshold).
 - Fields: `id`, `org_id`, `client_id` (optional), `session_id` (optional), `assignee_user_id` (counselor by default), `title`, `description`, `due_at`, `priority (low|medium|high|urgent)`, `status (open|in_progress|done|cancelled)`, `is_client_visible (bool, default false)`, `source (manual|assessment|escalation|session|system)`, `completed_at`, `completed_by`, timestamps, audit.
 - If `is_client_visible = true`, the client sees the task (title only, safe copy) in their dashboard.
 - Tasks are surfaced in: counselor dashboard (My Tasks), client 360 (per-client task list), org dashboard (overdue task heatmap).
@@ -189,18 +193,18 @@ Legend: ✅ full · 🟡 conditional · ❌ none
 
 ## 11. Non-Functional Requirements
 
-| # | Category | Requirement |
-|---|---|---|
-| NFR-1 | Security | TLS 1.2+ in transit; AES-256 at rest; per-tenant RLS; MFA for admins; secrets in secrets manager |
-| NFR-2 | Privacy | Compliant with Kenya DPA 2019 + GDPR principles + HIPAA-inspired safeguards; DPIA template maintained |
-| NFR-3 | Availability | 99.5% v1 target; 99.9% roadmap |
-| NFR-4 | Performance | P95 page load < 2.5s on 4G; API P95 < 400ms |
-| NFR-5 | Scalability | 10k orgs, 5M users design target; RLS sharding-friendly |
-| NFR-6 | Accessibility | WCAG 2.1 AA |
-| NFR-7 | Localization | en-KE default, i18n-ready, EAT timezone default |
-| NFR-8 | Auditability | Immutable audit log, min 7y retention |
-| NFR-9 | Recoverability | RPO ≤ 1h, RTO ≤ 4h; daily backups + PITR |
-| NFR-10 | Observability | Structured logs, error tracking, uptime monitoring, per-tenant usage metering |
+| #      | Category       | Requirement                                                                                           |
+| ------ | -------------- | ----------------------------------------------------------------------------------------------------- |
+| NFR-1  | Security       | TLS 1.2+ in transit; AES-256 at rest; per-tenant RLS; MFA for admins; secrets in secrets manager      |
+| NFR-2  | Privacy        | Compliant with Kenya DPA 2019 + GDPR principles + HIPAA-inspired safeguards; DPIA template maintained |
+| NFR-3  | Availability   | 99.5% v1 target; 99.9% roadmap                                                                        |
+| NFR-4  | Performance    | P95 page load < 2.5s on 4G; API P95 < 400ms                                                           |
+| NFR-5  | Scalability    | 10k orgs, 5M users design target; RLS sharding-friendly                                               |
+| NFR-6  | Accessibility  | WCAG 2.1 AA                                                                                           |
+| NFR-7  | Localization   | en-KE default, i18n-ready, EAT timezone default                                                       |
+| NFR-8  | Auditability   | Immutable audit log, min 7y retention                                                                 |
+| NFR-9  | Recoverability | RPO ≤ 1h, RTO ≤ 4h; daily backups + PITR                                                              |
+| NFR-10 | Observability  | Structured logs, error tracking, uptime monitoring, per-tenant usage metering                         |
 
 ---
 
@@ -264,14 +268,14 @@ organizations 1─┬─* organization_members *─1 profiles
 
 ## 13. Security & Authorization Model
 
-- **Auth**: Supabase Auth via Lovable Cloud. Email/password + Google OAuth (v1). MFA (TOTP) optional / mandatory admin. HIBP leaked-password check enabled.
+- **Auth**: Supabase Auth via the self-owned Supabase project. Email/password + Google OAuth (v1). MFA (TOTP) optional / mandatory admin. HIBP leaked-password check enabled.
 - **Session**: JWT bearer; per-tab sign-out clears cache; token refresh via Supabase client.
 - **AuthZ layers**:
   1. Router guards (protected route subtree)
   2. Server function middleware (`requireSupabaseAuth`)
   3. Postgres RLS (the ultimate boundary)
   4. Column-level encryption for high-sensitivity fields (national ID, phone, note bodies, emergency contact phone)
-- **Secrets**: All keys in Lovable secrets (Airtel/M-Pesa, Resend, Daily.co, VAPID) — never in code.
+- **Secrets**: All keys in project secrets (Airtel/M-Pesa, Resend, Daily.co, VAPID) — never in code.
 - **Auditing**: Every clinical read/write goes through a helper that writes `audit_log`.
 - **Transport**: HTTPS-only, HSTS, secure cookies, CSP.
 - **Storage**: Signed URLs (short TTL) for attachments; private bucket per org path prefix.
@@ -282,12 +286,14 @@ organizations 1─┬─* organization_members *─1 profiles
 ## 14. Screen Inventory & Navigation
 
 ### 14.1 Public / auth
+
 - `/` Marketing landing
 - `/auth` Sign in / sign up / reset
 - `/invite/:token` Accept invitation
 - `/join/:code` Org join code (later)
 
 ### 14.2 Client (protected)
+
 - `/app` Dashboard (next appointment, unread messages, **my tasks**, pending assessments)
 - `/app/appointments`
 - `/app/messages/:conversationId`
@@ -298,6 +304,7 @@ organizations 1─┬─* organization_members *─1 profiles
 - `/app/privacy` DSAR export / delete
 
 ### 14.3 Counselor (protected)
+
 - `/app/schedule` Calendar
 - `/app/clients` Caseload (filterable by case_status)
 - `/app/clients/:id` Client 360 (tabs: overview, sessions, notes, summary, messages, assessments, escalations, **tasks**, **emergency contacts**)
@@ -308,6 +315,7 @@ organizations 1─┬─* organization_members *─1 profiles
 - `/app/availability`
 
 ### 14.4 Org Admin (protected)
+
 - `/admin/dashboard` Analytics (includes case-status distribution + task heatmap)
 - `/admin/users`
 - `/admin/counselors`
@@ -317,12 +325,14 @@ organizations 1─┬─* organization_members *─1 profiles
 - `/admin/billing` (later)
 
 ### 14.5 Platform Admin (protected)
+
 - `/platform/orgs`
 - `/platform/telemetry`
 - `/platform/feature-flags`
 - `/platform/billing`
 
 ### 14.6 Navigation model
+
 Persistent left nav on desktop, bottom nav on mobile. Role-aware menu rendered from a permission-tagged config.
 
 ---
@@ -340,15 +350,17 @@ Persistent left nav on desktop, bottom nav on mobile. Role-aware menu rendered f
 ## 16. System Architecture
 
 ### 16.1 Runtime
+
 - **Frontend**: TanStack Start v1 (React 19), Vite 7, TailwindCSS v4, shadcn/ui.
-- **Backend**: TanStack Start server functions on Cloudflare Worker runtime (Lovable default).
-- **Data**: Lovable Cloud (Postgres + RLS + Auth + Storage + Realtime).
+- **Backend**: TanStack Start server functions on Cloudflare Worker runtime.
+- **Data**: Self-owned Supabase (Postgres + RLS + Auth + Storage + Realtime).
 - **Async jobs**: `pg_cron` + edge-invoked server routes under `/api/public/cron/*` (signature-verified) for reminders, retention sweeps, task overdue scans.
 - **Realtime**: Supabase Realtime channels for messaging + presence.
 - **Media (later)**: Daily.co behind `session_media` adapter.
 - **Payments (later)**: Airtel Money + M-Pesa Daraja via server functions; Stripe via `enable_stripe_payments` later.
 
 ### 16.2 Multi-tenancy
+
 - Shared DB, RLS-isolated. `org_id` on every tenant row. Membership via `organization_members` + `has_role`.
 - Enterprise dedicated-DB tier reserved as a future option.
 
@@ -369,7 +381,8 @@ Persistent left nav on desktop, bottom nav on mobile. Role-aware menu rendered f
 ```
 
 ### 16.4 Environments
-- `dev` (Lovable preview), `staging`, `prod`. Separate Supabase projects; migrations promoted forward-only.
+
+- `dev` (local preview), `staging`, `prod`. Separate Supabase projects; migrations promoted forward-only.
 
 ---
 
@@ -402,7 +415,7 @@ Persistent left nav on desktop, bottom nav on mobile. Role-aware menu rendered f
 
 ## 19. Deployment Strategy
 
-- **Hosting**: Lovable platform (Cloudflare Worker runtime).
+- **Hosting**: Cloudflare Worker runtime.
 - **Migrations**: SQL migrations in repo; forward-only; every `CREATE TABLE public.*` includes GRANT + RLS + policies in the same migration.
 - **Release cadence**: Continuous to `dev`; weekly to `staging`; fortnightly to `prod` during v1 stabilization.
 - **Feature flags**: `feature_flags` table (per-org overrides) for staged rollouts (esp. video, tasks-client-visibility).
@@ -414,15 +427,15 @@ Persistent left nav on desktop, bottom nav on mobile. Role-aware menu rendered f
 
 ## 20. Product Roadmap
 
-| Phase | Milestone | Contents |
-|---|---|---|
-| **P0 — Foundations** (Weeks 1–3) | Bootstrap | Design system, auth, org+user model, RLS harness, audit log |
-| **P1 — MVP core** (Weeks 4–9) | Bookings, Notes, Tasks | Scheduling, sessions, private notes + shared summary, emergency contact, case status, **tasks & follow-ups**, messaging, notifications |
-| **P2 — Clinical depth** (Weeks 10–13) | Assessments & Crisis | Assessments engine, PHQ-9/GAD-7, escalation workflow (uses emergency contact), safety plans, org analytics |
-| **P3 — Onboarding breadth** (Weeks 14–16) | Roster & Access | CSV import, domain onboarding, join code/QR, SMS channel |
-| **P4 — Live sessions** (Weeks 17–22) | Video/Voice | Daily.co integration, 1:1 voice/video, meeting rooms, screen share, in-session file share |
-| **P5 — Groups & Billing** (Weeks 23–28) | Group sessions | Group counseling, org subscription billing (Airtel + M-Pesa), Stripe |
-| **P6 — Enterprise** (later) | Scale | SSO (Google Workspace / Entra / SAML), regional hosting option, supervisor role formalisation |
+| Phase                                     | Milestone              | Contents                                                                                                                               |
+| ----------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **P0 — Foundations** (Weeks 1–3)          | Bootstrap              | Design system, auth, org+user model, RLS harness, audit log                                                                            |
+| **P1 — MVP core** (Weeks 4–9)             | Bookings, Notes, Tasks | Scheduling, sessions, private notes + shared summary, emergency contact, case status, **tasks & follow-ups**, messaging, notifications |
+| **P2 — Clinical depth** (Weeks 10–13)     | Assessments & Crisis   | Assessments engine, PHQ-9/GAD-7, escalation workflow (uses emergency contact), safety plans, org analytics                             |
+| **P3 — Onboarding breadth** (Weeks 14–16) | Roster & Access        | CSV import, domain onboarding, join code/QR, SMS channel                                                                               |
+| **P4 — Live sessions** (Weeks 17–22)      | Video/Voice            | Daily.co integration, 1:1 voice/video, meeting rooms, screen share, in-session file share                                              |
+| **P5 — Groups & Billing** (Weeks 23–28)   | Group sessions         | Group counseling, org subscription billing (Airtel + M-Pesa), Stripe                                                                   |
+| **P6 — Enterprise** (later)               | Scale                  | SSO (Google Workspace / Entra / SAML), regional hosting option, supervisor role formalisation                                          |
 
 ---
 
@@ -438,7 +451,7 @@ Persistent left nav on desktop, bottom nav on mobile. Role-aware menu rendered f
 - Notifications: Email + Web Push in MVP
 - Retention: 7 years default, per-org configurable
 - Platform Admin: zero access to tenant clinical data
-- Data residency: Lovable Cloud default now, regional option later
+- Data residency: self-owned Supabase region default now, regional option later
 - Billing: org-level subscription architected (Airtel Money + M-Pesa first, Stripe later)
 
 ## 22. Open Questions
@@ -453,21 +466,22 @@ Persistent left nav on desktop, bottom nav on mobile. Role-aware menu rendered f
 8. Recording policy for future video (never / opt-in / org-configurable)
 9. Reporting fields required by university partners (need 1–2 discovery interviews)
 10. Escalation on-call routing rules (round-robin vs designated crisis counselor)
-_All previously open questions 11–12 are now confirmed — see §11a and §11b below._
+    _All previously open questions 11–12 are now confirmed — see §11a and §11b below._
 
 ## 11a. Task Reminder Cadence (Confirmed — BR-14)
 
 **Confirmed default schedule** for every task with a due date:
 
-| Trigger | Timing | Channel |
-|---|---|---|
-| Assignment | Immediately on task create/assign | Email + Web Push |
-| Pre-due | 24 hours before `due_at` | Email + Web Push |
-| Due day | On `due_at` date at 08:00 local org timezone | Email + Web Push |
-| Overdue | Once daily at 08:00 local org timezone | Email + Web Push |
-| Overdue cap | Stop after 7 consecutive overdue reminders | — |
+| Trigger     | Timing                                       | Channel          |
+| ----------- | -------------------------------------------- | ---------------- |
+| Assignment  | Immediately on task create/assign            | Email + Web Push |
+| Pre-due     | 24 hours before `due_at`                     | Email + Web Push |
+| Due day     | On `due_at` date at 08:00 local org timezone | Email + Web Push |
+| Overdue     | Once daily at 08:00 local org timezone       | Email + Web Push |
+| Overdue cap | Stop after 7 consecutive overdue reminders   | —                |
 
 Rules:
+
 - Reminders suppress if task is marked `completed`, `cancelled`, or reassigned.
 - Reminder content follows the "no clinical content in notifications" rule (task title must be non-clinical or a generic label).
 - **Future (post-MVP):** Organization Administrators may customize the reminder schedule (offsets, times, channels, overdue cap) per organization. Data model must store schedule as a per-org configurable policy from day one, even though only the default is exposed in v1.
