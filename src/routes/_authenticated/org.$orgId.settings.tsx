@@ -439,6 +439,8 @@ function InvitationsTab({ orgId }: { orgId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [revokeConfirm, setRevokeConfirm] = useState<{ id: string; email: string } | null>(null);
+
   return (
     <Card className="mt-6">
       <CardHeader>
@@ -494,7 +496,7 @@ function InvitationsTab({ orgId }: { orgId: string }) {
                           <Button size="sm" variant="ghost" onClick={() => { navigator.clipboard?.writeText(link); toast.success("Link copied"); }}>
                             <Copy className="h-3.5 w-3.5" />
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => mRevoke.mutate(inv.id)}>
+                          <Button size="sm" variant="ghost" onClick={() => setRevokeConfirm({ id: inv.id, email: inv.email })}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -507,6 +509,19 @@ function InvitationsTab({ orgId }: { orgId: string }) {
           </Table>
         )}
       </CardContent>
+      <ConfirmDialog
+        open={!!revokeConfirm}
+        onOpenChange={(o) => !o && setRevokeConfirm(null)}
+        title="Revoke invitation?"
+        description={<>The invitation link for <span className="font-medium">{revokeConfirm?.email}</span> will stop working immediately. They'll need a new invitation to join.</>}
+        confirmLabel="Revoke invitation"
+        destructive
+        loading={mRevoke.isPending}
+        onConfirm={() => {
+          if (!revokeConfirm) return;
+          mRevoke.mutate(revokeConfirm.id, { onSettled: () => setRevokeConfirm(null) });
+        }}
+      />
     </Card>
   );
 }
