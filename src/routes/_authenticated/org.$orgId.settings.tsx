@@ -20,6 +20,7 @@ import {
   listAuditLog,
 } from "@/lib/organizations.functions";
 import type { Database } from "@/integrations/supabase/types";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { ArrowLeft, Copy, Trash2, UserPlus, ShieldOff } from "lucide-react";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
