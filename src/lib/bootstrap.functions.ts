@@ -44,8 +44,13 @@ export const claimPlatformAdmin = createServerFn({ method: "POST" })
       throw new Error("already_bootstrapped");
     }
 
-    const email = (context.claims.email as string | undefined) ?? null;
-    const emailVerified = Boolean(context.claims.email_verified);
+    // Fetch the LIVE user record from Supabase Auth so we see the current
+    // email_confirmed_at rather than a stale JWT claim from before the user
+    // clicked the verification link.
+    const { data: userRes, error: userErr } = await supabaseAdmin.auth.admin.getUserById(actorId);
+    if (userErr || !userRes?.user) throw new Error("user_lookup_failed");
+    const email = userRes.user.email ?? null;
+    const emailVerified = !!userRes.user.email_confirmed_at;
 
     if (!email || email.toLowerCase() !== target.toLowerCase()) {
       await audit("platform_admin_bootstrap.refused", { reason: "email_mismatch", email });

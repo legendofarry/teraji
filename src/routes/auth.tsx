@@ -53,13 +53,15 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Check your email to confirm your account.");
+        toast.success("Verification email sent — check your inbox.");
+        navigate({ to: "/verify-email", search: { email }, replace: true });
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
-        toast.success("Password reset email sent.");
+        toast.success("Password reset email sent — check your inbox.");
+        navigate({ to: "/auth", search: { mode: "signin" }, replace: true });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
