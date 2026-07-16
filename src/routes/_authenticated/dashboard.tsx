@@ -1,12 +1,14 @@
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { claimPlatformAdmin, getMySession } from "@/lib/bootstrap.functions";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { LogOut, ShieldCheck, Building2, User as UserIcon, Settings, Plus } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -25,8 +27,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function DashboardPage() {
   const navigate = useNavigate();
   const router = useRouter();
+  const qc = useQueryClient();
   const fetchSession = useServerFn(getMySession);
   const bootstrap = useServerFn(claimPlatformAdmin);
+  const [signOutOpen, setSignOutOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const q = useQuery({
     queryKey: ["me", "session"],
@@ -40,12 +45,28 @@ function DashboardPage() {
       router.invalidate();
       q.refetch();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      const map: Record<string, string> = {
+        email_unverified: "Your email isn't verified yet. Check your inbox and click the verification link.",
+        email_mismatch: "This account's email doesn't match the configured Platform Administrator.",
+        already_bootstrapped: "A Platform Administrator already exists.",
+        bootstrap_disabled: "Platform Administrator bootstrap is disabled.",
+      };
+      toast.error(map[e.message] ?? e.message);
+    },
   });
 
-  async function signOut() {
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", search: { mode: "signin" }, replace: true });
+  async function performSignOut() {
+    setSigningOut(true);
+    try {
+      await qc.cancelQueries();
+      qc.clear();
+      await supabase.auth.signOut();
+      navigate({ to: "/auth", search: { mode: "signin" }, replace: true });
+    } finally {
+      setSigningOut(false);
+      setSignOutOpen(false);
+    }
   }
 
   const me = q.data;
@@ -61,13 +82,22 @@ function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             {me?.email && <span className="text-sm text-muted-foreground hidden sm:inline">{me.email}</span>}
-            <Button variant="ghost" size="sm" onClick={signOut}>
+            <Button variant="ghost" size="sm" onClick={() => setSignOutOpen(true)}>
               <LogOut className="mr-2 h-4 w-4" />
               Sign out
             </Button>
           </div>
         </div>
       </header>
+      <ConfirmDialog
+        open={signOutOpen}
+        onOpenChange={setSignOutOpen}
+        title="Sign out of Teraji?"
+        description="You'll need to sign in again to access your workspace."
+        confirmLabel="Sign out"
+        loading={signingOut}
+        onConfirm={performSignOut}
+      />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-8">
