@@ -261,6 +261,10 @@ function MembersTab({ orgId }: { orgId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Confirm dialog state for destructive actions
+  const [statusConfirm, setStatusConfirm] = useState<{ userId: string; status: MemberStatus; name: string } | null>(null);
+  const [roleConfirm, setRoleConfirm] = useState<{ userId: string; role: AppRole; name: string } | null>(null);
+
   return (
     <Card className="mt-6">
       <CardHeader>
@@ -299,7 +303,13 @@ function MembersTab({ orgId }: { orgId: string }) {
                             {r}
                             <button
                               className="ml-1 text-muted-foreground hover:text-destructive"
-                              onClick={() => mRevoke.mutate({ userId: m.user_id, role: r })}
+                              onClick={() =>
+                                setRoleConfirm({
+                                  userId: m.user_id,
+                                  role: r,
+                                  name: profile?.full_name ?? m.user_id.slice(0, 8),
+                                })
+                              }
                               aria-label={`Revoke ${r}`}
                               type="button"
                             >×</button>
@@ -317,11 +327,31 @@ function MembersTab({ orgId }: { orgId: string }) {
                           </SelectContent>
                         </Select>
                         {m.status === "active" ? (
-                          <Button size="sm" variant="outline" onClick={() => mStatus.mutate({ userId: m.user_id, status: "suspended" })}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setStatusConfirm({
+                                userId: m.user_id,
+                                status: "suspended",
+                                name: profile?.full_name ?? m.user_id.slice(0, 8),
+                              })
+                            }
+                          >
                             <ShieldOff className="mr-1 h-3.5 w-3.5" /> Suspend
                           </Button>
                         ) : (
-                          <Button size="sm" variant="outline" onClick={() => mStatus.mutate({ userId: m.user_id, status: "active" })}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setStatusConfirm({
+                                userId: m.user_id,
+                                status: "active",
+                                name: profile?.full_name ?? m.user_id.slice(0, 8),
+                              })
+                            }
+                          >
                             Reactivate
                           </Button>
                         )}
@@ -334,6 +364,44 @@ function MembersTab({ orgId }: { orgId: string }) {
           </Table>
         )}
       </CardContent>
+      <ConfirmDialog
+        open={!!statusConfirm}
+        onOpenChange={(o) => !o && setStatusConfirm(null)}
+        title={statusConfirm?.status === "suspended" ? "Suspend member?" : "Reactivate member?"}
+        description={
+          statusConfirm?.status === "suspended"
+            ? `${statusConfirm?.name} will lose access to this organization until reactivated.`
+            : `${statusConfirm?.name} will regain access to this organization.`
+        }
+        confirmLabel={statusConfirm?.status === "suspended" ? "Suspend" : "Reactivate"}
+        destructive={statusConfirm?.status === "suspended"}
+        loading={mStatus.isPending}
+        onConfirm={() => {
+          if (!statusConfirm) return;
+          mStatus.mutate(
+            { userId: statusConfirm.userId, status: statusConfirm.status },
+            { onSettled: () => setStatusConfirm(null) },
+          );
+        }}
+      />
+      <ConfirmDialog
+        open={!!roleConfirm}
+        onOpenChange={(o) => !o && setRoleConfirm(null)}
+        title="Revoke role?"
+        description={
+          <>Remove the <span className="font-medium">{roleConfirm?.role}</span> role from {roleConfirm?.name}? They will immediately lose the permissions granted by this role.</>
+        }
+        confirmLabel="Revoke role"
+        destructive
+        loading={mRevoke.isPending}
+        onConfirm={() => {
+          if (!roleConfirm) return;
+          mRevoke.mutate(
+            { userId: roleConfirm.userId, role: roleConfirm.role },
+            { onSettled: () => setRoleConfirm(null) },
+          );
+        }}
+      />
     </Card>
   );
 }
