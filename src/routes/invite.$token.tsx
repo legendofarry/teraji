@@ -44,9 +44,15 @@ function InvitePage() {
   const acceptMut = useMutation({
     mutationFn: () => accept({ data: { token } }),
     onSuccess: (res) => {
-      toast.success("You're in!");
+      toast.success("You're in — welcome to the team!");
       router.invalidate();
-      navigate({ to: "/org/$orgId/settings", params: { orgId: res.org_id } });
+      // Org admins land on settings so they can configure the org.
+      // Everyone else goes to the dashboard to get started.
+      if (res.role === "org_admin") {
+        navigate({ to: "/org/$orgId/settings", params: { orgId: res.org_id }, replace: true });
+      } else {
+        navigate({ to: "/dashboard", replace: true });
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
